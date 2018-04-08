@@ -20,10 +20,11 @@ typedef unsigned char  uchar;
  }                                                                 \
 }
 
-typedef uchar* (*createMemFunc)(uchar* h_data,uint size);
-typedef uchar* (*copyMemAfterFunc)(uchar* d_data, uint size);
-typedef void   (*execKernel)(uchar* in, uchar* out,size_t width, size_t height);
+typedef uchar* (*createMemFunc)(uchar* ,ulong );
+typedef uchar* (*copyMemAfterFunc)(uchar* , ulong );
+typedef void   (*execKernel)(uchar* , uchar* ,size_t , size_t );
 
-typedef void (*kernel)(uchar *, uchar *,uint, uint ,uint ,float);
+typedef void (*kernelPtr)(uchar *, uchar *,uint, uint ,uint ,float);
+typedef void (*freeMem)(uchar* ,uchar* ,uchar* );
 
 #endif /* TYPES_H_ */

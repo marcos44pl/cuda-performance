@@ -13,25 +13,23 @@
 using namespace cimg_library;
 
 ImageManager::ImageManager(std::string const& imagePath) :
-		ImageManager::ImageManger()
+				dispatch_map({
+				{"bmp", &ImageManager::loadBmp},
+				{"jpg", &ImageManager::loadAny},
+				{"png", &ImageManager::loadAny}}),
+				image(nullptr),
+				data(nullptr),
+				imagePath(imagePath)
 {
-	this->imagePath =imagePath;
 }
 
-ImageManager::ImageManager() :
-		dispatch_map({
-		{"bmp", &ImageManager::loadBmp},
-		{"jpg", &ImageManager::loadAny},
-		{"png", &ImageManager::loadAny}}),
-		image(nullptr),
-		data(nullptr)
+ImageManager::ImageManager() : ImageManager::ImageManager("")
 {
 }
 
 ImageManager::~ImageManager()
 {
-	cudaFree(data);
-	delete image;
+	clear();
 }
 
 uchar* ImageManager::load()
@@ -59,18 +57,15 @@ void ImageManager::loadBmp()
     int height = *(int*)&info[22];
 
     int size = 3 * width * height;
-	cudaMallocManaged(&data, size);
-
+    data = new uchar[size];
     fread(data, sizeof(uchar), size, f); // read the rest of the data at once
     fclose(f);
-
     for(i = 0; i < size; i += 3)
     {
             uchar tmp = data[i];
             data[i] = data[i+2];
             data[i+2] = tmp;
     }
-
 }
 
 void ImageManager::save(const std::string& name, uchar* new_data)
@@ -90,10 +85,11 @@ void ImageManager::loadAny()
 	memcpy(data,image->_data,get_size());
 }
 
-uchar* ImageManager::createEmpty(int width,int height)
+uchar* ImageManager::createEmpty(uint width,uint height)
 {
 	image = new CImg<uchar>(width,height,1,3,0);	// Allocate Unified Memory -- accessible from CPU or GPU
-	data = new uchar[get_size()];
-	memcpy(data,image->_data,get_size());
-	return data;
+	//data = new uchar[get_size()];
+	//memcpy(data,image->_data,get_size());
+	data = image->_data;
+	return image->_data;
 }

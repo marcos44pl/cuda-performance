@@ -5,8 +5,7 @@
 #include "ImageManager.h"
 #include "headers.h"
 #include "Timer.h"
-
-
+#include "test_cases.h"
 
 std::map<std::string,execKernel> kernel_map =
 	{
@@ -17,54 +16,39 @@ std::map<std::string,execKernel> kernel_map =
 	};
 
 
-void testCudaMemGeneric(ImageManager& 		image,
-						 std::string const& name,
-						 createMemFunc      beforeFunc,
-						 execKernel 		kernelFunc,
-						 copyMemAfterFunc	afterFunc)
-{
-	printf("%s\n",name.c_str());
-	uchar* in,*out,*h_out;
-	uint size = image.get_size();
-	Timer::getInstance().start(name);
-	in = beforeFunc(image.get_data(),size);
-	out = in + size;
-	kernelFunc(in,out,image.get_width(),image.get_height());
-	cudaDeviceSynchronize();
-	cudaCheckError();
-	h_out = afterFunc(out,size);
-	Timer::getInstance().stop(name);
-	//image.save("result.jpg",h_out);
-	cudaFree(in);
-}
 
 int main(int argc, char *argv[])
 {
 	initCuda();
 
-	ImageManager image("huge.jpg");
-	image.createEmpty(12000,12000);
-
+	ImageManager image;
+	/*image.createEmpty(20000,20000);
+	printf("Testing UM optimalizations\n");
 
 	for(auto const& pair : kernel_map)
 	{
 		testCudaMemGeneric(image,pair.first + std::string(" UM std "),
 							createUMem,
 							pair.second,
-							copyMock);
+							copyMock,
+							freeUM);
 		testCudaMemGeneric(image,pair.first + std::string(" UM opt "),
 							createUMemOpt,
 							pair.second,
-							copyMock);
+							copyMock,
+							freeUM);
 		testCudaMemGeneric(image,pair.first + std::string(" MemCpy std "),
 							createStdMem,
 							pair.second,
-							copyStdMemBack);
+							copyStdMemBack,
+							freeStd);
 	}
-
+	image.clear();*/
+	printf("Testing oversubscription\n");
+	testSobelOversubStd();
+	printf("Testing UM oversubscription\n");
+	testSobelOversubUM();
 	Timer::getInstance().printResults();
-	// Free memory
-
     cudaProfilerStop();
     cudaDeviceReset();
     printf("end\n");

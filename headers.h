@@ -13,19 +13,24 @@
 #define PXL_ID(x,y,w) ( (x) + ((y)*w) )
 #define CHANNEL_NUM 3
 
-
+void testSobelOversubUM();
+void testSobelOversubStd();
 void sobel_filter_coalesc(uchar* in, uchar* out,size_t width, size_t height);
 void sobel_filter_non_coalesc(uchar* in, uchar* out,size_t width, size_t height);
 void rotation_global_mem(uchar* in, uchar* out,size_t width, size_t height);
 void rotation_shared_mem(uchar* in, uchar* out,size_t width, size_t height);
 
-uchar* createStdMem(uchar* data,uint size);
-uchar* createUMem(uchar* data,uint size);
-uchar* createUMemOpt(uchar* data,uint size);
-uchar* copyStdMemBack(uchar* d_data,uint size);
-uchar* copyMock(uchar* d_data,uint size);
+uchar* createStdMem(uchar* data,ulong size);
+uchar* createUMem(uchar* data,ulong size);
+uchar* createUMemOpt(uchar* data,ulong size);
+uchar* copyStdMemBack(uchar* d_data,ulong size);
+uchar* copyMock(uchar* d_data,ulong size);
+void freeStd(uchar* d_in,uchar* d_out,uchar* h_out);
+void freeUM(uchar* d_in,uchar* d_out,uchar* h_out);
+void testRead(uchar* data,ulong size);
+
 
 void initCuda();
-void exec_kernel(uchar* in, uchar* out,size_t width, size_t height,kernel kernel_ptr);
-
+void exec_kernel(uchar* in, uchar* out,size_t width, size_t height,kernelPtr kernel_ptr);
+size_t freeMemory();
 #endif /* FILTERS_H_ */

@@ -3,7 +3,7 @@
 
 #include "config.h"
 #include "headers.h"
-
+#include "test_cases.h"
 
 
 __device__ uchar compute_sobel(uchar tl, //top left
@@ -83,3 +83,12 @@ void sobel_filter_non_coalesc(uchar* in, uchar* out,size_t width, size_t height)
 	exec_kernel(in,out,width,height,kernel_sobel_filter_non_coalesc);
 }
 
+void testSobelOversubStd()
+{
+	testOversubStd(kernel_sobel_filter_coalesc);
+}
+
+void testSobelOversubUM()
+{
+	testOversubUM(kernel_sobel_filter_coalesc);
+}

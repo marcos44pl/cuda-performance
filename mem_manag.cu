@@ -4,15 +4,17 @@
 #include "headers.h"
 
 
-void testRead(uchar* data,uint size)
+void testRead(uchar* data,ulong size)
 {
-	int c = size / sizeof(uchar);
-	for(int i = 0; i < c; ++i);
-		*data = 0;
+	ulong c = size / sizeof(uchar);
+	for(ulong i = 0; i < c; ++i)
+	{
+		data[i] = 0;
+	}
 }
 
 
-uchar* createStdMem(uchar* data,uint size)
+uchar* createStdMem(uchar* data,ulong size)
 {
 	uchar* d_data;
 	cudaMalloc((void**)&d_data,size*2);
@@ -22,41 +24,59 @@ uchar* createStdMem(uchar* data,uint size)
 	return d_data;
 }
 
-uchar* createUMem(uchar* data,uint size)
+uchar* createUMem(uchar* data,ulong size)
 {
 	uchar* um_data;
 	cudaMallocManaged(&um_data, size * 2);
-	memcpy(um_data,data,size);
 	cudaCheckError();
+	if(data)
+		memcpy(um_data,data,size);
 	return um_data;
 }
 
-uchar* createUMemOpt(uchar* data,uint size)
+uchar* createUMemOpt(uchar* data,ulong size)
 {
 	int device =-1;
 	uchar* um_data;
 	um_data = createUMem(data,size);
 	cudaGetDevice(&device);
-	cudaMemAdvise(um_data,size,cudaMemAdviseSetReadMostly,device);
 	cudaCheckError();
 	cudaMemPrefetchAsync(um_data,size,device,NULL);
+	cudaCheckError();
+	cudaMemAdvise(um_data,size,cudaMemAdviseSetReadMostly,device);
 	cudaCheckError();
 	return um_data;
 }
 
 
-uchar* copyStdMemBack(uchar* d_data,uint size)
+uchar* copyStdMemBack(uchar* d_data,ulong size)
 {
 	uchar* h_data = new uchar[size];
+	if (h_data == nullptr)
+		printf("Out of memory\n");
 	cudaMemcpy(h_data,d_data,size,cudaMemcpyDeviceToHost);
 	cudaCheckError();
 	testRead(h_data,size);
 	return h_data;
 }
 
-uchar* copyMock(uchar* d_data,uint size) // We don't need to copy mem, as it is UM
+uchar* copyMock(uchar* d_data,ulong size) // We don't need to copy mem, as it is UM
 {
 	testRead(d_data,size);
 	return d_data;
+}
+
+void freeStd(uchar* d_in,uchar* d_out,uchar* h_out)
+{
+	cudaFree(d_in);
+	cudaCheckError();
+	delete h_out;
+}
+
+
+void freeUM(uchar* d_in,uchar* d_out,uchar* h_out)
+{
+	cudaFree(d_in);
+	cudaCheckError();
 }
 

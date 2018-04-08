@@ -26,14 +26,14 @@ public:
 	ImageManager();
 	~ImageManager();
 
-	uchar* createEmpty(int width,int height);
+	uchar* createEmpty(uint width,uint height);
 	uchar* load();
 	void   save(std::string const& name,uchar* data);
 	size_t get_width() const { return image->width(); }
 	size_t get_height() const { return image->height(); }
-	size_t get_size() const { return image->size() * sizeof(uchar); }
+	ulong  get_size() const { return image->size() * sizeof(uchar); }
 	uchar* get_data() const { return data; }
-
+	void   clear() { delete image; }
 private:
 	void loadBmp();
 	void loadAny();

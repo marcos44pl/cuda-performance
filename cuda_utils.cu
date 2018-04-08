@@ -15,7 +15,21 @@ void initCuda()
     }
 }
 
-void exec_kernel(uchar* in, uchar* out,size_t width, size_t height,kernel kernel_ptr)
+double BtoMB(size_t num)
+{
+	return double(num) / (1024 * 1024);
+}
+
+size_t freeMemory()
+{
+	size_t freeMem,totalMem;
+	cudaMemGetInfo(&freeMem,&totalMem);
+	cudaCheckError();
+	//printf("Total Mem: %2f\n Free Mem: %2f\n",BtoMB(totalMem),BtoMB(freeMem));
+	return freeMem;
+}
+
+void exec_kernel(uchar* in, uchar* out,size_t width, size_t height,kernelPtr kernel_ptr)
 {
 	dim3 thsPerBlck(BATCH_W,BATCH_H);
 	dim3 blckNum(width/(BATCH_W * PXL_PER_THD) + 1,height/(BATCH_H) + 1);
