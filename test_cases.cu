@@ -6,8 +6,23 @@
 #include "Timer.h"
 #include "headers.h"
 #include "config.h"
+#include "utils.h"
 
-#define IMG_SIZE_GB 6
+#define IMG_SIZE_GB 4
+
+StartArgs parsInputArguments()
+{
+	StartArgs args;
+
+	//default simulation settings
+	args.NUM_OF_ITERATIONS = 100;
+	args.X_SIZE = 200;
+	args.Y_SIZE = 200;
+	args.Z_SIZE = 200;
+	args.type = deviceSimulationType::SHARED_3D_LAYER;
+	args.print = false;
+	return args;
+}
 
 void testCudaMemGeneric(ImageManager& 		image,
 						 std::string const& name,
@@ -129,6 +144,7 @@ void testOversubStd(kernelPtr kernel)
 		cudaEventRecord(cpyEvents[i], streams[i]);
 		cudaCheckError();
 	}
+	cudaDeviceSynchronize();
 	for(int i = 0; i <realStreamNum; ++i)
 	{
 		cudaStreamDestroy(streams[i]); // we have to free the stream resources for the others
@@ -136,7 +152,6 @@ void testOversubStd(kernelPtr kernel)
 		cudaEventDestroy(cpyEvents[i]);
 		cudaCheckError();
 	}
-	cudaDeviceSynchronize();
 	testRead(pitchedHMem,realSize);
 
 	cudaFree(dev_mem);
@@ -163,8 +178,14 @@ void testOversubUM(kernelPtr kernel)
 	cudaGetDevice(&device);
 	uchar* um_data = createUMem(nullptr,realSize);
 	memset(um_data, 0, realSize);
+	cudaMemAdvise(um_data,realSize,cudaMemAdviseSetReadMostly,device);
+	cudaCheckError();
+	cudaMemPrefetchAsync(um_data,realSize,device,NULL);
+	cudaCheckError();
 	exec_kernel(um_data,um_data + realSize,width,height,kernel);
 	cudaDeviceSynchronize();
+	cudaCheckError();
+	cudaMemPrefetchAsync(um_data + realSize,realSize,cudaCpuDeviceId,NULL);
 	cudaCheckError();
 	testRead(um_data + realSize,realSize);
 
@@ -172,3 +193,117 @@ void testOversubUM(kernelPtr kernel)
 	cudaCheckError();
 	Timer::getInstance().stop(name);
 }
+
+
+void testStreamImgProcessingStd(kernelPtr kernel)
+{
+
+}
+
+void testStreamImgProcessingUm(kernelPtr kernel)
+{
+
+}
+
+void testFluidSimStd()
+{
+    Timer::getInstance().start("Fluid simulation std mem");
+    StartArgs args = parsInputArguments();
+    Fraction* space = initSpace(args,false,false);
+    FluidParams *d_params, params = initParams();
+
+    cudaMalloc((void **)&d_params, sizeof(FluidParams));
+    cudaMemcpy(d_params, &params, sizeof(FluidParams), cudaMemcpyHostToDevice);
+
+    if (NULL == space)
+        exit(-1);
+
+    Fraction *d_space, *d_result;
+    int totalSize = sizeof(Fraction)*args.SIZE(), i;
+    void *result = new Fraction[totalSize];
+
+    cudaMalloc((void **)&d_space, totalSize);
+    cudaMalloc((void **)&d_result, totalSize);
+    cudaCheckErrors("Mallocs");
+    cudaMemcpy(d_space, space, totalSize, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_result, result, totalSize, cudaMemcpyHostToDevice);
+
+    cudaCheckErrors("Copy mem");
+    printf("StdMem Simulation started\n");
+
+    for (i = 0; i<args.NUM_OF_ITERATIONS; ++i)
+    {
+        simulation(args, d_params, d_space, d_result);
+        swapPointers(d_space, d_result);
+        cudaThreadSynchronize();
+    }
+	if (i % 2 == 0)
+		cudaMemcpy(space, d_space, totalSize, cudaMemcpyDeviceToHost);
+	else
+		cudaMemcpy(space, d_result, totalSize, cudaMemcpyDeviceToHost);
+
+	testRead(space,totalSize);
+
+    Timer::getInstance().stop("Fluid simulation std mem");
+    printf("Simulation completed\n");
+    free(space);
+    cudaFree(d_params);
+    cudaFree(d_space);
+    cudaFree(d_result);
+    cudaCheckErrors("Free mem");
+}
+
+void testFluidSimUM(bool withAdvise)
+{
+    std::string name = withAdvise ? "Fluid simulation UM advised" : "Fluid simulation UM std";
+    Timer::getInstance().start(name);
+
+	int device = -1;
+	cudaGetDevice(&device);
+    StartArgs args = parsInputArguments();
+    int totalSize = sizeof(Fraction)*args.SIZE(), i;
+    FluidParams *um_params, params = initParams();
+    cudaMallocManaged(&um_params, sizeof(FluidParams));
+    memcpy(um_params,&params,sizeof(FluidParams));
+    Fraction *buffer,*result;
+    cudaMallocManaged(&buffer,totalSize);
+    cudaCheckErrors("UM Mallocs");
+    if(withAdvise)
+    {
+    	printf("UM advised Simulation started\n");
+    	cudaMemAdvise(um_params,sizeof(FluidParams),cudaMemAdviseSetReadMostly,device);
+    	cudaCheckError();
+    	cudaMemPrefetchAsync(um_params,sizeof(FluidParams),device,NULL);
+    	cudaCheckError();
+    	cudaMemPrefetchAsync(buffer,totalSize,device,NULL);
+    	cudaCheckError();
+    }
+    else
+    {
+    	printf("UM Simulation started\n");
+    }
+    Fraction* space = initSpace(args,true,withAdvise,device);
+    for (i = 0; i<args.NUM_OF_ITERATIONS; ++i)
+    {
+        simulation(args, um_params, space, buffer);
+        swapPointers(space, buffer);
+        cudaThreadSynchronize();
+    }
+	result = (i % 2 == 0) ? space : buffer;
+
+    if(withAdvise)
+    {
+    	cudaMemPrefetchAsync(result,sizeof(FluidParams),cudaCpuDeviceId,NULL);
+    	cudaCheckError();
+    }
+
+	testRead(result,totalSize);
+
+    Timer::getInstance().stop(name);
+    printf("Simulation completed\n");
+
+    cudaFree(space);
+    cudaFree(buffer);
+    cudaFree(um_params);
+}
+

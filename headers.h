@@ -27,10 +27,9 @@ uchar* copyStdMemBack(uchar* d_data,ulong size);
 uchar* copyMock(uchar* d_data,ulong size);
 void freeStd(uchar* d_in,uchar* d_out,uchar* h_out);
 void freeUM(uchar* d_in,uchar* d_out,uchar* h_out);
-void testRead(uchar* data,ulong size);
 
 
-void initCuda();
+void initCuda(int dev = 0);
 void exec_kernel(uchar* in, uchar* out,size_t width, size_t height,kernelPtr kernel_ptr);
 size_t freeMemory();
 #endif /* FILTERS_H_ */

@@ -6,6 +6,8 @@
 #include "headers.h"
 #include "Timer.h"
 #include "test_cases.h"
+#include "utils.h"
+#include "computation.h"
 
 std::map<std::string,execKernel> kernel_map =
 	{
@@ -15,7 +17,21 @@ std::map<std::string,execKernel> kernel_map =
 		{"sobel_filter_non_coalesc", &sobel_filter_non_coalesc}
 	};
 
+Fraction* execDevice(StartArgs args);
 
+StartArgs parsInputArguments(const int argc, char *argv[])
+{
+	StartArgs args;
+
+	//default simulation settings
+	args.NUM_OF_ITERATIONS = 10;
+	args.X_SIZE = 100;
+	args.Y_SIZE = 100;
+	args.Z_SIZE = 100;
+	args.type = deviceSimulationType::GLOBAL;
+	args.print = false;
+	return args;
+}
 
 int main(int argc, char *argv[])
 {
@@ -44,13 +60,20 @@ int main(int argc, char *argv[])
 							freeStd);
 	}
 	image.clear();*/
+
 	printf("Testing oversubscription\n");
 	testSobelOversubStd();
 	printf("Testing UM oversubscription\n");
 	testSobelOversubUM();
+
+	testFluidSimStd();
+	testFluidSimUM();
+	testFluidSimUM(false);
+
 	Timer::getInstance().printResults();
     cudaProfilerStop();
     cudaDeviceReset();
     printf("end\n");
+
 	return 0;
 }

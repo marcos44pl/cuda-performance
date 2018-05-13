@@ -15,7 +15,8 @@ class ImageManager;
 void testOversubStd(kernelPtr kernel_ptr);
 void testCudaMemGeneric(ImageManager&,std::string const&, createMemFunc,execKernel,copyMemAfterFunc,freeMem);
 void testOversubUM(kernelPtr kernel);
-
+void testFluidSimUM(bool withAdvise = true);
+void testFluidSimStd();
 
 
 #endif /* TEST_CASES_H_ */

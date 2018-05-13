@@ -1,7 +1,7 @@
 #include "headers.h"
 #include "config.h"
 
-void initCuda()
+void initCuda(int gpu_id)
 {
 	int nDevices;
     int devCount = cudaGetDeviceCount(&nDevices);
@@ -13,6 +13,7 @@ void initCuda()
         printf("CUDA device [%s] has %d Multi-Processors\n",
                props.name, props.multiProcessorCount);
     }
+    cudaSetDevice(gpu_id);
 }
 
 double BtoMB(size_t num)

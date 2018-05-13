@@ -2,17 +2,7 @@
 
 
 #include "headers.h"
-
-
-void testRead(uchar* data,ulong size)
-{
-	ulong c = size / sizeof(uchar);
-	for(ulong i = 0; i < c; ++i)
-	{
-		data[i] = 0;
-	}
-}
-
+#include "utils.h"
 
 uchar* createStdMem(uchar* data,ulong size)
 {
@@ -41,9 +31,9 @@ uchar* createUMemOpt(uchar* data,ulong size)
 	um_data = createUMem(data,size);
 	cudaGetDevice(&device);
 	cudaCheckError();
-	cudaMemPrefetchAsync(um_data,size,device,NULL);
-	cudaCheckError();
 	cudaMemAdvise(um_data,size,cudaMemAdviseSetReadMostly,device);
+	cudaCheckError();
+	cudaMemPrefetchAsync(um_data,size,device,NULL);
 	cudaCheckError();
 	return um_data;
 }
