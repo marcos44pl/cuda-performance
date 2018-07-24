@@ -17,6 +17,8 @@ void testCudaMemGeneric(ImageManager&,std::string const&, createMemFunc,execKern
 void testOversubUM(kernelPtr kernel);
 void testFluidSimUM(bool withAdvise = true);
 void testFluidSimStd();
+void testStreamImgProcessingStd(kernelPtr kernel);
+void testStreamImgProcessingUm(kernelPtr kernel,bool withAdvise= true);
 
 
 #endif /* TEST_CASES_H_ */

@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 	initCuda();
 
 	ImageManager image;
-	/*image.createEmpty(20000,20000);
+	image.createEmpty(20000,20000);
 	printf("Testing UM optimalizations\n");
 
 	for(auto const& pair : kernel_map)
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
 							copyStdMemBack,
 							freeStd);
 	}
-	image.clear();*/
+	image.clear();
 
 	printf("Testing oversubscription\n");
 	testSobelOversubStd();
@@ -70,6 +70,9 @@ int main(int argc, char *argv[])
 	testFluidSimUM();
 	testFluidSimUM(false);
 
+	testSobelStreamUM(false);
+	testSobelStreamUM(true);
+	testSobelStreamStd();
 	Timer::getInstance().printResults();
     cudaProfilerStop();
     cudaDeviceReset();

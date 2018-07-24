@@ -13,6 +13,8 @@
 #define PXL_ID(x,y,w) ( (x) + ((y)*w) )
 #define CHANNEL_NUM 3
 
+void testSobelStreamStd();
+void testSobelStreamUM(bool withAdvise);
 void testSobelOversubUM();
 void testSobelOversubStd();
 void sobel_filter_coalesc(uchar* in, uchar* out,size_t width, size_t height);

@@ -9,7 +9,8 @@ uchar* createStdMem(uchar* data,ulong size)
 	uchar* d_data;
 	cudaMalloc((void**)&d_data,size*2);
 	cudaCheckError();
-	cudaMemcpy(d_data,data,size,cudaMemcpyHostToDevice);
+	if(data)
+		cudaMemcpy(d_data,data,size,cudaMemcpyHostToDevice);
 	cudaCheckError();
 	return d_data;
 }

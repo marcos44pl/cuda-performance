@@ -92,3 +92,13 @@ void testSobelOversubUM()
 {
 	testOversubUM(kernel_sobel_filter_coalesc);
 }
+
+void testSobelStreamUM(bool withAdvise)
+{
+	testStreamImgProcessingUm(kernel_sobel_filter_non_coalesc,withAdvise);
+}
+
+void testSobelStreamStd()
+{
+	testStreamImgProcessingStd(kernel_sobel_filter_non_coalesc);
+}

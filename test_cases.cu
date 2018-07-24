@@ -9,6 +9,9 @@
 #include "utils.h"
 
 #define IMG_SIZE_GB 4
+#define IMG_NUM 200
+#define IMG_W 1920
+#define IMG_H 1080
 
 StartArgs parsInputArguments()
 {
@@ -170,8 +173,6 @@ void testOversubUM(kernelPtr kernel)
 	uint height = width;
 	ulong realSizeCh = width * height * sizeof(uchar);
 	ulong realSize = realSizeCh * channelNum;
-
-
 	const std::string name = "Oversubscription unified memory";
 	Timer::getInstance().start(name);
 	int device =-1;
@@ -197,12 +198,118 @@ void testOversubUM(kernelPtr kernel)
 
 void testStreamImgProcessingStd(kernelPtr kernel)
 {
+	std::string name = "Stream Image Processing Std";
+    Timer::getInstance().start(name);
+	const uint size = IMG_H * IMG_W * 3;
+	const uint size_bytes = size * sizeof(uchar);
+	const int streamNum = 3;
+	const ulong totalSize = sizeof(uchar) * IMG_NUM * size;
+	cudaStream_t streams[streamNum];
+	uchar* d_mem = createStdMem(nullptr,totalSize);
+	uchar* h_mem = new uchar[totalSize];
+	memset(h_mem, 0, totalSize);
+	uchar* c_res_mem = d_mem + size * IMG_NUM;
 
+	for(int i = 0; i <streamNum; ++i)
+	{
+		cudaStreamCreate(&streams[i]);
+		cudaCheckError();
+	}
+
+	dim3 thsPerBlck(BATCH_W,BATCH_H);
+	dim3 blckNum(IMG_W/(BATCH_W * PXL_PER_THD) + 1,IMG_H/(BATCH_H) + 1);
+
+	for(int i =0; i< IMG_NUM;++i)
+	{
+		int s_id = i % streamNum;
+		 cudaMemcpyAsync(&d_mem[i], &h_mem[i],size_bytes,
+		                 cudaMemcpyHostToDevice, streams[s_id]);
+	}
+
+
+	for(int i =0; i< IMG_NUM;++i)
+	{
+		int s_id = i % streamNum;
+		kernel<<<blckNum, thsPerBlck, 0, streams[s_id]>>>(d_mem + i * size_bytes,c_res_mem + i * size_bytes,
+														  IMG_W,IMG_H,PXL_PER_THD,IMAGE_SCALE);
+	}
+
+	for(int i =0; i< IMG_NUM;++i)
+	{
+		int s_id = i % streamNum;
+		 cudaMemcpyAsync(&h_mem[i], &d_mem[i],size_bytes,
+				 	 	 cudaMemcpyDeviceToHost, streams[s_id]);
+	}
+	cudaDeviceSynchronize();
+	cudaCheckError();
+	testRead(h_mem,totalSize);
+    Timer::getInstance().stop(name);
+	cudaFree(d_mem);
+	delete h_mem;
 }
 
-void testStreamImgProcessingUm(kernelPtr kernel)
+void testStreamImgProcessingUm(kernelPtr kernel,bool withAdvise)
 {
+	std::string name = "Stream Image Processing UM";
+	if(withAdvise)
+		name += " Opt";
+    Timer::getInstance().start(name);
 
+	const ulong size = IMG_H * IMG_W * 3;
+	const ulong totalSize = sizeof(uchar) * IMG_NUM * size;
+	const int streamNum = 3;
+	uchar* umem = createUMem(nullptr,totalSize);
+	uchar* res_umem = umem + size * IMG_NUM;
+	memset(umem, 0, totalSize);
+	cudaStream_t streams[streamNum];
+	cudaEvent_t events[streamNum];
+	for(int i = 0; i <streamNum; ++i)
+	{
+		cudaStreamCreate(&streams[i]);
+		cudaCheckError();
+		cudaEventCreate(&events[i]);
+		cudaCheckError();
+	}
+
+	dim3 thsPerBlck(BATCH_W,BATCH_H);
+	dim3 blckNum(IMG_W/(BATCH_W * PXL_PER_THD) + 1,IMG_H/(BATCH_H) + 1);
+
+	int device =-1;
+	cudaGetDevice(&device);
+	cudaCheckError();
+	if(withAdvise)
+	{
+		cudaMemPrefetchAsync(umem,sizeof(uchar) * size, device,streams[1]);
+		cudaCheckError();
+		cudaEventRecord(events[0], streams[1]);
+		cudaCheckError();
+	}
+	for(int i =0; i< IMG_NUM;++i)
+	{
+		int s_id = i % streamNum;
+		int s1_id = (i + 1) % streamNum;
+		cudaEventSynchronize(events[s_id]);
+		cudaEventSynchronize(events[s1_id]);
+		kernel<<<blckNum, thsPerBlck, 0, streams[s_id]>>>(umem + i * size,res_umem + i * sizeof(uchar) *size,
+														  IMG_W,IMG_H,PXL_PER_THD,IMAGE_SCALE);
+		cudaEventRecord(events[s_id], streams[s_id]);
+
+		if(withAdvise)
+		{
+			if(i < IMG_NUM -1)
+			{
+				cudaStreamSynchronize(streams[s1_id]);
+				cudaMemPrefetchAsync(umem + (i+1) * size, sizeof(uchar) * size, device, streams[s1_id]);
+				cudaEventRecord(events[s1_id], streams[s1_id]);
+			}
+			cudaMemPrefetchAsync(res_umem + i * size, sizeof(uchar) * size, cudaCpuDeviceId, streams[s_id]);
+		}
+	}
+	cudaDeviceSynchronize();
+	cudaCheckError();
+	testRead(res_umem,totalSize);
+    Timer::getInstance().stop(name);
+	cudaFree(umem);
 }
 
 void testFluidSimStd()
@@ -236,13 +343,15 @@ void testFluidSimStd()
         simulation(args, d_params, d_space, d_result);
         swapPointers(d_space, d_result);
         cudaThreadSynchronize();
-    }
-	if (i % 2 == 0)
-		cudaMemcpy(space, d_space, totalSize, cudaMemcpyDeviceToHost);
-	else
-		cudaMemcpy(space, d_result, totalSize, cudaMemcpyDeviceToHost);
 
-	testRead(space,totalSize);
+    	if (i % 2 == 0)
+    		cudaMemcpy(space, d_space, totalSize, cudaMemcpyDeviceToHost);
+    	else
+    		cudaMemcpy(space, d_result, totalSize, cudaMemcpyDeviceToHost);
+
+    	testRead(space,totalSize);
+    }
+
 
     Timer::getInstance().stop("Fluid simulation std mem");
     printf("Simulation completed\n");
@@ -265,7 +374,7 @@ void testFluidSimUM(bool withAdvise)
     FluidParams *um_params, params = initParams();
     cudaMallocManaged(&um_params, sizeof(FluidParams));
     memcpy(um_params,&params,sizeof(FluidParams));
-    Fraction *buffer,*result;
+    Fraction *buffer,*result,*start;
     cudaMallocManaged(&buffer,totalSize);
     cudaCheckErrors("UM Mallocs");
     if(withAdvise)
@@ -288,16 +397,26 @@ void testFluidSimUM(bool withAdvise)
         simulation(args, um_params, space, buffer);
         swapPointers(space, buffer);
         cudaThreadSynchronize();
-    }
-	result = (i % 2 == 0) ? space : buffer;
 
-    if(withAdvise)
-    {
-    	cudaMemPrefetchAsync(result,sizeof(FluidParams),cudaCpuDeviceId,NULL);
-    	cudaCheckError();
-    }
+    	result = (i % 2 == 0) ? space : buffer;
+    	start = (i % 2 == 0)  ? buffer : space;
 
-	testRead(result,totalSize);
+        if(withAdvise)
+        {
+        	cudaMemPrefetchAsync(result,totalSize,cudaCpuDeviceId,NULL);
+        	cudaCheckError();
+        	cudaMemPrefetchAsync(start,totalSize,device,NULL);
+        	cudaCheckError();
+        }
+
+    	testRead(result,totalSize);
+
+        if(withAdvise)
+        {
+        	cudaMemPrefetchAsync(result,totalSize,device,NULL);
+        	cudaCheckError();
+        }
+    }
 
     Timer::getInstance().stop(name);
     printf("Simulation completed\n");
