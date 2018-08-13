@@ -40,18 +40,14 @@ void testCudaMemGeneric(ImageManager& 		image,
 	freeMemory();
 	Timer::getInstance().start(name);
 	in = beforeFunc(image.get_data(),size);
-	printf("mem allocated\n");
 	out = in + size;
 	kernelFunc(in,out,image.get_width(),image.get_height());
 	cudaDeviceSynchronize();
 	cudaCheckError();
-	printf("kernel finished\n");
 	h_out = afterFunc(out,size);
-	printf("coping mem\n");
 	Timer::getInstance().stop(name);
 	//image.save("result.jpg",h_out);
 	freeFunc(in,out,h_out);
-	printf("freeing mem\n");
 }
 
 void testOversubStd(kernelPtr kernel)

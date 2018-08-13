@@ -10,14 +10,13 @@
 #include <stdio.h>
 
 #include "ImageManager.h"
-using namespace cimg_library;
 
 ImageManager::ImageManager(std::string const& imagePath) :
 				dispatch_map({
 				{"bmp", &ImageManager::loadBmp},
 				{"jpg", &ImageManager::loadAny},
 				{"png", &ImageManager::loadAny}}),
-				image(nullptr),
+				//image(nullptr),
 				data(nullptr),
 				imagePath(imagePath)
 {
@@ -34,7 +33,7 @@ ImageManager::~ImageManager()
 
 uchar* ImageManager::load()
 {
-	std::string ext = imagePath.substr(imagePath.rfind("."));
+	/*std::string ext = imagePath.substr(imagePath.rfind("."));
 	loaderPtr loadingMethod;
 	if(dispatch_map.count(ext) > 0)
 
@@ -42,7 +41,7 @@ uchar* ImageManager::load()
 	else
 		loadingMethod = &ImageManager::loadAny;
 	(this->*loadingMethod)();
-	return data;
+	return data;*/
 }
 
 void ImageManager::loadBmp()
@@ -70,26 +69,26 @@ void ImageManager::loadBmp()
 
 void ImageManager::save(const std::string& name, uchar* new_data)
 {
-	uint w = image->width(), h = image->height();
+	/*uint w = image->width(), h = image->height();
 	image->_height = w;
 	image->_width = h;
 	image->_data = new_data;
 	image->save(name.c_str());
-	printf("Image saved at: %s\n",name.c_str());
+	printf("Image saved at: %s\n",name.c_str());*/
 }
 
 void ImageManager::loadAny()
 {
-	image = new CImg<uchar>(imagePath.c_str());	// Allocate Unified Memory -- accessible from CPU or GPU
+	/*image = new CImg<uchar>(imagePath.c_str());	// Allocate Unified Memory -- accessible from CPU or GPU
 	data = new uchar[get_size()];
-	memcpy(data,image->_data,get_size());
+	memcpy(data,image->_data,get_size());*/
 }
 
 uchar* ImageManager::createEmpty(uint width,uint height)
 {
-	image = new CImg<uchar>(width,height,1,3,0);	// Allocate Unified Memory -- accessible from CPU or GPU
-	//data = new uchar[get_size()];
-	//memcpy(data,image->_data,get_size());
-	data = image->_data;
-	return image->_data;
+	w = width;
+	h = height;
+	data = new uchar[w *h * 3];
+	//image = new CImg<uchar>(width,height,1,3,0);	// Allocate Unified Memory -- accessible from CPU or GPU
+	return data;
 }
