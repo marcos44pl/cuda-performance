@@ -36,7 +36,7 @@ StartArgs parsInputArguments(const int argc, char *argv[])
 int main(int argc, char *argv[])
 {
 	initCuda();
-	ImageManager image;
+	/*ImageManager image;
 	image.createEmpty(20000,20000);
 	printf("Testing UM optimalizations\n");
 
@@ -68,7 +68,8 @@ int main(int argc, char *argv[])
 	testSobelStreamUM(false);
 	testSobelStreamUM(true);
 	testSobelStreamStd();
-	testFl16Cudnn();
+	testFl16Cudnn();*/
+	testFl16ConvCudaNN();
 	Timer::getInstance().printResults();
     cudaProfilerStop();
     cudaDeviceReset();

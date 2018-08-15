@@ -22,6 +22,7 @@ void sobel_filter_non_coalesc(uchar* in, uchar* out,size_t width, size_t height)
 void rotation_global_mem(uchar* in, uchar* out,size_t width, size_t height);
 void rotation_shared_mem(uchar* in, uchar* out,size_t width, size_t height);
 void testFl16Cudnn();
+void testFl16ConvCudaNN();
 
 uchar* createStdMem(uchar* data,ulong size);
 uchar* createUMem(uchar* data,ulong size);
