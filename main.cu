@@ -36,10 +36,13 @@ StartArgs parsInputArguments(const int argc, char *argv[])
 int main(int argc, char *argv[])
 {
 	initCuda();
-	/*ImageManager image;
+	ImageManager image;
 	image.createEmpty(20000,20000);
 	printf("Testing UM optimalizations\n");
-
+	testFl16FullyConnectedFwdCudaNN();
+	testFl16Cudnn();
+	testFl16PoolCudaNN();
+	testFl16ConvCudaNN();
 	for(auto const& pair : kernel_map)
 	{
 		testCudaMemGeneric(image,pair.first + std::string(" UM std "),
@@ -59,17 +62,16 @@ int main(int argc, char *argv[])
 							freeStd);
 	}
 	image.clear();
-
+	testSobelOversubUMOpt();
 	testSobelOversubStd();
 	testSobelOversubUM();
+	testSobelOversubMultiImgStd();
 	testFluidSimStd();
 	testFluidSimUM();
 	testFluidSimUM(false);
 	testSobelStreamUM(false);
 	testSobelStreamUM(true);
 	testSobelStreamStd();
-	testFl16Cudnn();*/
-	testFl16ConvCudaNN();
 	Timer::getInstance().printResults();
     cudaProfilerStop();
     cudaDeviceReset();

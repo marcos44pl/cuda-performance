@@ -25,13 +25,12 @@ uchar* createUMem(uchar* data,ulong size)
 	return um_data;
 }
 
+
 uchar* createUMemOpt(uchar* data,ulong size)
 {
 	int device =-1;
 	uchar* um_data;
 	um_data = createUMem(data,size);
-	cudaGetDevice(&device);
-	cudaCheckError();
 	cudaMemAdvise(um_data,size,cudaMemAdviseSetReadMostly,device);
 	cudaCheckError();
 	cudaMemPrefetchAsync(um_data,size,device,NULL);

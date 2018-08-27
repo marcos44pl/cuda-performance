@@ -465,7 +465,7 @@ class network_t
     }
     void fullyConnectedForward(const Layer_t<value_type>& ip,
                           int& n, int& c, int& h, int& w,
-                          value_type* srcData, value_type** dstData)
+                          value_type* srcData, value_type** dstData, bool stdAlone = false)
     {
         if (n != 1)
         {
@@ -473,8 +473,10 @@ class network_t
         }
         int dim_x = c*h*w;
         int dim_y = ip.outputs;
-        resize(dim_y, dstData);
-
+        if(stdAlone && dstData == NULL)
+        	cudaMalloc(dstData,n*c*h*w*sizeof(value_type));
+        else
+        	resize(n*c*h*w, dstData);
         scaling_type alpha = scaling_type(1), beta = scaling_type(1);
         // place bias into dstData
         checkCudaErrors( cudaMemcpy(*dstData, ip.bias_d, dim_y*sizeof(value_type), cudaMemcpyDeviceToDevice) );
@@ -486,7 +488,7 @@ class network_t
     }
     void convoluteForward(const Layer_t<value_type>& conv,
                           int& n, int& c, int& h, int& w,
-                          value_type* srcData, value_type** dstData)
+                          value_type* srcData, value_type** dstData, bool stdAlone = false)
     {
         cudnnConvolutionFwdAlgo_t algo;
 
@@ -561,7 +563,11 @@ class network_t
             algo = (cudnnConvolutionFwdAlgo_t)convAlgorithm;
         }
 
-        resize(n*c*h*w, dstData);
+        if(stdAlone && dstData == NULL)
+        	cudaMalloc(dstData,n*c*h*w*sizeof(value_type));
+        else
+        	resize(n*c*h*w, dstData);
+
         size_t sizeInBytes=0;
         void* workSpace=NULL;
         checkCUDNN( cudnnGetConvolutionForwardWorkspaceSize(cudnnHandle,
@@ -598,7 +604,7 @@ class network_t
     }
 
     void poolForward( int& n, int& c, int& h, int& w,
-                      value_type* srcData, value_type** dstData)
+                      value_type* srcData, value_type** dstData, bool stdAlone = false)
     {
         const int poolDims = 2;
         int windowDimA[poolDims] = {2,2};
@@ -625,7 +631,10 @@ class network_t
 
         setTensorDesc(dstTensorDesc, tensorFormat, dataType, n, c, h, w);  
      
-        resize(n*c*h*w, dstData);
+        if(stdAlone && dstData == NULL)
+        	cudaMalloc(dstData,n*c*h*w*sizeof(value_type));
+        else
+        	resize(n*c*h*w, dstData);
         scaling_type alpha = scaling_type(1);
         scaling_type beta = scaling_type(0);
         checkCUDNN( cudnnPoolingForward(cudnnHandle,
@@ -726,17 +735,30 @@ class network_t
 										cudaMemcpyHostToDevice));
 
 			convoluteForward(conv1, n, c, h, w, srcData, &dstData);
+			//printf("Conv n %d c %d h %d w %d\n",n,c,h,w);
 			poolForward(n, c, h, w, dstData, &srcData);
+			//printf("Pool n %d c %d h %d w %d\n",n,c,h,w);
 
 			convoluteForward(conv2, n, c, h, w, srcData, &dstData);
+			//printf("Conv2 n %d c %d h %d w %d\n",n,c,h,w);
+
 			poolForward(n, c, h, w, dstData, &srcData);
+			//printf("Pool2 n %d c %d h %d w %d\n",n,c,h,w);
 
 			fullyConnectedForward(ip1, n, c, h, w, srcData, &dstData);
+			//printf("FulC n %d c %d h %d w %d\n",n,c,h,w);
+
 			activationForward(n, c, h, w, dstData, &srcData);
+			//printf("Activ n %d c %d h %d w %d\n",n,c,h,w);
+
 			lrnForward(n, c, h, w, srcData, &dstData);
+			//printf("LrnFwd n %d c %d h %d w %d\n",n,c,h,w);
 
 			fullyConnectedForward(ip2, n, c, h, w, dstData, &srcData);
+			//printf("FullCon2 n %d c %d h %d w %d\n",n,c,h,w);
+
 			softmaxForward(n, c, h, w, srcData, &dstData);
+			//printf("SoftMax n %d c %d h %d w %d\n",n,c,h,w);
 
 			checkCudaErrors (cudaDeviceSynchronize());
         }

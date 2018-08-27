@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-
+#include <iostream>
 #include "config.h"
 #include "headers.h"
 #include "test_cases.h"
@@ -85,20 +85,37 @@ void sobel_filter_non_coalesc(uchar* in, uchar* out,size_t width, size_t height)
 
 void testSobelOversubStd()
 {
+	std::cout << "Testing oversubscription std\n";
 	testOversubStd(kernel_sobel_filter_coalesc);
 }
 
 void testSobelOversubUM()
 {
-	testOversubUM(kernel_sobel_filter_coalesc);
+	std::cout << "Testing oversubscription UM naive\n";
+	testOversubNaiveUM(kernel_sobel_filter_coalesc);
+	testOversubNaiveUM(kernel_sobel_filter_coalesc,false);
+}
+
+void testSobelOversubUMOpt()
+{
+	std::cout << "Testing oversubscription UM MultiImg opt\n";
+	testOversubUMOpt(kernel_sobel_filter_coalesc);
+}
+
+void testSobelOversubMultiImgStd()
+{
+	std::cout << "Testing oversubscription UM MultiImg Std\n";
+	testOversubMultiImgStd(kernel_sobel_filter_coalesc);
 }
 
 void testSobelStreamUM(bool withAdvise)
 {
-	testStreamImgProcessingUm(kernel_sobel_filter_non_coalesc,withAdvise);
+	std::cout << "Testing streams img processing UM " << withAdvise << std::endl;
+	testStreamImgProcessingUm(kernel_sobel_filter_non_coalesc,"Stream Image Processing UM",200,withAdvise);
 }
 
 void testSobelStreamStd()
 {
+	std::cout << "Testing streams img processing Std\n";
 	testStreamImgProcessingStd(kernel_sobel_filter_non_coalesc);
 }

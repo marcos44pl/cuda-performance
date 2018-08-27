@@ -14,11 +14,13 @@ class ImageManager;
 
 void testOversubStd(kernelPtr kernel_ptr);
 void testCudaMemGeneric(ImageManager&,std::string const&, createMemFunc,execKernel,copyMemAfterFunc,freeMem);
-void testOversubUM(kernelPtr kernel);
+void testOversubNaiveUM(kernelPtr kernel,bool withAdvise=true);
+void testOversubUMOpt(kernelPtr kernel);
+void testOversubMultiImgStd(kernelPtr kernel);
 void testFluidSimUM(bool withAdvise = true);
 void testFluidSimStd();
 void testStreamImgProcessingStd(kernelPtr kernel);
-void testStreamImgProcessingUm(kernelPtr kernel,bool withAdvise= true);
+void testStreamImgProcessingUm(kernelPtr kernel,std::string name,int imgCount,bool withAdvise= true);
 
 
 #endif /* TEST_CASES_H_ */

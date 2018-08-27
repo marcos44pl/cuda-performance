@@ -43,7 +43,8 @@ void runConvolutionFwd(int iter,std::string name)
     value_type *srcData = NULL, *dstData = NULL;
     int n,c,h,w;
 	n = 1;c = 1; h = 1024; w = 1024;
-    checkCudaErrors( cudaMalloc(&srcData, h*w*sizeof(value_type)) );
+    checkCudaErrors( cudaMallocManaged(&srcData, h*w*sizeof(value_type)) );
+    memset(srcData,0,h*w*sizeof(value_type));
     Timer::getInstance().start(name);
     for(int i = 0; i < iter;++i)
     {
@@ -56,9 +57,53 @@ void runConvolutionFwd(int iter,std::string name)
 	cudaFree(dstData);
 }
 
+template <class value_type>
+void runPoolForward(int iter,std::string name)
+{
+	network_t<value_type> mnist;
+    value_type *srcData = NULL, *dstData = NULL;
+    int n,c,h,w;
+	n = 1;c = 100; h = 104; w = 104;
+    checkCudaErrors( cudaMallocManaged(&srcData, h*w*sizeof(value_type)) );
+    memset(srcData,0,h*w*sizeof(value_type));
+    Timer::getInstance().start(name);
+    for(int i = 0; i < iter;++i)
+    {
+    	n = 1;c = 100; h = 104; w = 104;
+		mnist.poolForward(n,c,h,w,srcData,&dstData);
+    }
+	checkCudaErrors (cudaDeviceSynchronize());
+    Timer::getInstance().stop(name);
+	cudaFree(srcData);
+	cudaFree(dstData);
+}
+
+template <class value_type>
+void runFullyConnectedForward(int iter,std::string name)
+{
+	Layer_t<value_type>   ip1(800,500,1,FP16_HOST);
+	network_t<value_type> mnist;
+    value_type *srcData = NULL, *dstData = NULL;
+    int n,c,h,w;
+	n = 1;c = 50; h = 8; w = 8;
+    checkCudaErrors( cudaMallocManaged(&srcData, h*w*sizeof(value_type)) );
+    memset(srcData,0,h*w*sizeof(value_type));
+    Timer::getInstance().start(name);
+    for(int i = 0; i < iter;++i)
+    {
+    	n = 1;c = 50; h = 8; w = 8;
+		mnist.fullyConnectedForward(ip1,n,c,h,w,srcData,&dstData);
+    }
+	checkCudaErrors (cudaDeviceSynchronize());
+    Timer::getInstance().stop(name);
+	cudaFree(srcData);
+	cudaFree(dstData);
+}
+
+
  void testFl16Cudnn()
 {
-	printf("Testing fl16 with learning networks...");
+	printf("Testing fl16 with learning networks...\n");
 	for(int i = 0; i < 10;++i)
 	{
 		runNetworkLearning<float>(FP16_CUDA,"CUDANN float");
@@ -69,8 +114,27 @@ void runConvolutionFwd(int iter,std::string name)
 
 void testFl16ConvCudaNN()
 {
+	printf("Testing fl16 with convolutionFwd...\n");
 	int i = 1000;
 	runConvolutionFwd<double>(i,"ConvolutionFwd test double");
 	runConvolutionFwd<half1>(i,"ConvolutionFwd test half");
 	runConvolutionFwd<float>(i,"ConvolutionFwd test float");
+}
+
+void testFl16PoolCudaNN()
+{
+	printf("Testing fl16 with poolFwd...\n");
+	int i = 4000;
+	runPoolForward<double>(i,"PoolFwd test double");
+	runPoolForward<half1>(i,"PoolFwd test half");
+	runPoolForward<float>(i,"PoolFwd test float");
+}
+
+void testFl16FullyConnectedFwdCudaNN()
+{
+	printf("Testing fl16 with fully connected fwd...\n");
+	int i = 4000;
+	runFullyConnectedForward<double>(i,"fullyconnected fwd test double");
+	runFullyConnectedForward<half1>(i,"fullyconnected fwd test half");
+	runFullyConnectedForward<float>(i,"fullyconnected fwd test float");
 }
