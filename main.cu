@@ -36,43 +36,51 @@ StartArgs parsInputArguments(const int argc, char *argv[])
 int main(int argc, char *argv[])
 {
 	initCuda();
-	ImageManager image;
-	image.createEmpty(20000,20000);
 	printf("Testing UM optimalizations\n");
-	testFl16FullyConnectedFwdCudaNN();
-	testFl16Cudnn();
-	testFl16PoolCudaNN();
-	testFl16ConvCudaNN();
-	for(auto const& pair : kernel_map)
+	//testFl16FullyConnectedFwdCudaNN();
+	//testFl16Cudnn();
+	//testFl16PoolCudaNN();
+	//testFl16ConvCudaNN();
+	//testFluidSimStd();
+	//testFluidSimUM();
+	//testFluidSimUM(false);
+	ImageManager image;
+	image.createEmpty(30000,30000);
+	for(int i = 0; i < 10;++i)
 	{
-		testCudaMemGeneric(image,pair.first + std::string(" UM std "),
-							createUMem,
-							pair.second,
-							copyMock,
-							freeUM);
-		testCudaMemGeneric(image,pair.first + std::string(" UM opt "),
-							createUMemOpt,
-							pair.second,
-							copyMock,
-							freeUM);
-		testCudaMemGeneric(image,pair.first + std::string(" MemCpy std "),
-							createStdMem,
-							pair.second,
-							copyStdMemBack,
-							freeStd);
+		for(auto const& pair : kernel_map)
+		{
+			testCudaMemGeneric(image,pair.first + std::string(" UM std "),
+								createUMem,
+								pair.second,
+								copyMock,
+								freeUM);
+			testCudaMemGeneric(image,pair.first + std::string(" UM opt "),
+								createUMemOpt,
+								pair.second,
+								copyMock,
+								freeUM);
+			testCudaMemGeneric(image,pair.first + std::string(" MemCpy std "),
+								createStdMem,
+								pair.second,
+								copyStdMemBack,
+								freeStd);
+		}
 	}
 	image.clear();
-	testSobelOversubUMOpt();
-	testSobelOversubStd();
-	testSobelOversubUM();
-	testSobelOversubMultiImgStd();
-	testFluidSimStd();
-	testFluidSimUM();
-	testFluidSimUM(false);
-	testSobelStreamUM(false);
-	testSobelStreamUM(true);
-	testSobelStreamStd();
+	for(int i = 0; i < 10;++i)
+	{
+		testSobelOversubUMOpt();
+		testSobelOversubStd();
+		testSobelOversubUM();
+		testSobelOversubMultiImgStd();
+		testSobelStreamUM(false);
+		testSobelStreamUM(true);
+		testSobelStreamStd();
+	}
+
 	Timer::getInstance().printResults();
+	cudaDeviceSynchronize();
     cudaProfilerStop();
     cudaDeviceReset();
     printf("end\n");
