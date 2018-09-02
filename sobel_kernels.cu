@@ -96,10 +96,10 @@ void testSobelOversubUM()
 	testOversubNaiveUM(kernel_sobel_filter_coalesc,false);
 }
 
-void testSobelOversubUMOpt()
+void testSobelOversubUMOpt(bool withAdvise)
 {
-	std::cout << "Testing oversubscription UM MultiImg opt\n";
-	testOversubUMOpt(kernel_sobel_filter_coalesc);
+	std::cout << "Testing oversubscription UM MultiImg opt "<< withAdvise << std::endl;
+	testOversubUMOpt(kernel_sobel_filter_coalesc,withAdvise);
 }
 
 void testSobelOversubMultiImgStd()

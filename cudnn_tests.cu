@@ -19,7 +19,7 @@ const char *ip2_bin = "ip2.bin";
 const char *ip2_bias_bin = "ip2.bias.bin";
 
 template <class value_type>
-void runNetworkLearning(fp16Import_t fp16ConvType, std::string const& name)
+void runNetworkLearning(int iter,fp16Import_t fp16ConvType, std::string const& name)
 {
 	cudaDeviceReset();
 	std::string image_path = std::string("data/") + std::string(lena_image);
@@ -31,12 +31,12 @@ void runNetworkLearning(fp16Import_t fp16ConvType, std::string const& name)
 	Layer_t<value_type> conv2(20,50,5,conv2_bin,conv2_bias_bin,fp16ConvType);
 	Layer_t<value_type>   ip1(800,500,1,ip1_bin,ip1_bias_bin,fp16ConvType);
 	Layer_t<value_type>   ip2(500,10,1,ip2_bin,ip2_bias_bin,fp16ConvType);
-	mnist.classify_example(imgData_h,conv1, conv2, ip1, ip2);
+	mnist.classify_example(iter,imgData_h,conv1, conv2, ip1, ip2);
     Timer::getInstance().stop(name);
 }
 
 template <class value_type>
-void runConvolutionFwd(int iter,std::string name)
+void runConvolutionFwd(int iter,std::string  const& name)
 {
 	Layer_t<value_type> conv1(1,20,3,FP16_HOST);
 	network_t<value_type> mnist;
@@ -58,7 +58,7 @@ void runConvolutionFwd(int iter,std::string name)
 }
 
 template <class value_type>
-void runPoolForward(int iter,std::string name)
+void runPoolForward(int iter,std::string const& name)
 {
 	network_t<value_type> mnist;
     value_type *srcData = NULL, *dstData = NULL;
@@ -79,7 +79,7 @@ void runPoolForward(int iter,std::string name)
 }
 
 template <class value_type>
-void runFullyConnectedForward(int iter,std::string name)
+void runFullyConnectedForward(int iter,std::string const& name)
 {
 	Layer_t<value_type>   ip1(800,500,1,FP16_HOST);
 	network_t<value_type> mnist;
@@ -101,40 +101,39 @@ void runFullyConnectedForward(int iter,std::string name)
 }
 
 
- void testFl16Cudnn()
+ void testFl16Cudnn(int iter)
 {
+	auto sizeStr = std::to_string(iter);
 	printf("Testing fl16 with learning networks...\n");
-	for(int i = 0; i < 10;++i)
-	{
-		runNetworkLearning<float>(FP16_CUDA,"CUDANN float");
-		runNetworkLearning<double>(FP16_CUDA,"CUDANN double");
-		runNetworkLearning<half1>(FP16_CUDA,"CUDANN half");
-	}
+	runNetworkLearning<float>(iter,FP16_CUDA,std::string("CUDANN float") + sizeStr);
+	runNetworkLearning<double>(iter,FP16_CUDA,std::string("CUDANN double") + sizeStr);
+	runNetworkLearning<half1>(iter,FP16_CUDA,std::string("CUDANN half") + sizeStr);
+
 }
 
-void testFl16ConvCudaNN()
+void testFl16ConvCudaNN(int iter)
 {
 	printf("Testing fl16 with convolutionFwd...\n");
-	int i = 1000;
-	runConvolutionFwd<double>(i,"ConvolutionFwd test double");
-	runConvolutionFwd<half1>(i,"ConvolutionFwd test half");
-	runConvolutionFwd<float>(i,"ConvolutionFwd test float");
+	auto sizeStr = std::to_string(iter);
+	runConvolutionFwd<double>(iter,std::string("ConvolutionFwd test double") + sizeStr);
+	runConvolutionFwd<half1>(iter,std::string("ConvolutionFwd test half") + sizeStr);
+	runConvolutionFwd<float>(iter,std::string("ConvolutionFwd test float") + sizeStr);
 }
 
-void testFl16PoolCudaNN()
+void testFl16PoolCudaNN(int iter)
 {
+	auto sizeStr = std::to_string(iter);
 	printf("Testing fl16 with poolFwd...\n");
-	int i = 4000;
-	runPoolForward<double>(i,"PoolFwd test double");
-	runPoolForward<half1>(i,"PoolFwd test half");
-	runPoolForward<float>(i,"PoolFwd test float");
+	runPoolForward<double>(iter,std::string("PoolFwd test double ") + sizeStr);
+	runPoolForward<half1>(iter,std::string("PoolFwd test half ") + sizeStr);
+	runPoolForward<float>(iter,std::string("PoolFwd test float ") + sizeStr);
 }
 
-void testFl16FullyConnectedFwdCudaNN()
+void testFl16FullyConnectedFwdCudaNN(int iter)
 {
 	printf("Testing fl16 with fully connected fwd...\n");
-	int i = 4000;
-	runFullyConnectedForward<double>(i,"fullyconnected fwd test double");
-	runFullyConnectedForward<half1>(i,"fullyconnected fwd test half");
-	runFullyConnectedForward<float>(i,"fullyconnected fwd test float");
+	auto sizeStr = std::to_string(iter);
+	runFullyConnectedForward<double>(iter,std::string("fullyconnected fwd test double") + sizeStr);
+	runFullyConnectedForward<half1>(iter,std::string("fullyconnected fwd test half") + sizeStr);
+	runFullyConnectedForward<float>(iter,std::string("fullyconnected fwd test float") + sizeStr);
 }

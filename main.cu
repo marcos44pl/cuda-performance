@@ -1,6 +1,7 @@
 #include <cuda_runtime.h>
 #include <stdlib.h>
 #include <cuda_profiler_api.h>
+#include <vector>
 
 #include "ImageManager.h"
 #include "headers.h"
@@ -37,48 +38,62 @@ int main(int argc, char *argv[])
 {
 	initCuda();
 	printf("Testing UM optimalizations\n");
-	//testFl16FullyConnectedFwdCudaNN();
-	//testFl16Cudnn();
-	//testFl16PoolCudaNN();
-	//testFl16ConvCudaNN();
-	//testFluidSimStd();
-	//testFluidSimUM();
-	//testFluidSimUM(false);
-	ImageManager image;
-	image.createEmpty(30000,30000);
-	for(int i = 0; i < 10;++i)
+	std::vector<int> sizes = { 100, 200, 800, 1600, 3200 };
+	/*for(auto size : sizes)
 	{
+		testFl16FullyConnectedFwdCudaNN(size);
+		testFl16Cudnn(size);
+		testFl16PoolCudaNN(size);
+		testFl16ConvCudaNN(size);
+		cudaDeviceSynchronize();
+	}*/
+
+	ImageManager image;
+	sizes = { 500, 1000, 5000, 10000, 30000 };
+	for(auto size : sizes)
+	{
+		image.createEmpty(size,size);
 		for(auto const& pair : kernel_map)
 		{
-			testCudaMemGeneric(image,pair.first + std::string(" UM std "),
-								createUMem,
-								pair.second,
-								copyMock,
-								freeUM);
-			testCudaMemGeneric(image,pair.first + std::string(" UM opt "),
-								createUMemOpt,
-								pair.second,
-								copyMock,
-								freeUM);
-			testCudaMemGeneric(image,pair.first + std::string(" MemCpy std "),
-								createStdMem,
-								pair.second,
-								copyStdMemBack,
-								freeStd);
+			for(int i = 0; i < 3;++i)
+			{
+
+				auto sizeStr = std::to_string(size);
+				testCudaMemGeneric(image,pair.first + std::string(" UM std ") + sizeStr,
+									createUMem,
+									pair.second,
+									copyMock,
+									freeUM);
+				testCudaMemGeneric(image,pair.first + std::string(" UM opt ") + sizeStr,
+									createUMemOpt,
+									pair.second,
+									copyMock,
+									freeUM);
+				testCudaMemGeneric(image,pair.first + std::string(" MemCpy std ") + sizeStr,
+									createStdMem,
+									pair.second,
+									copyStdMemBack,
+									freeStd);
+			}
 		}
+		image.clear();
 	}
-	image.clear();
-	for(int i = 0; i < 10;++i)
+    cudaDeviceReset();
+	for(int i = 0; i < 3;++i)
 	{
-		testSobelOversubUMOpt();
+		testSobelOversubUMOpt(true);
+		testSobelOversubUMOpt(false);
+		testSobelOversubMultiImgStd();
 		testSobelOversubStd();
 		testSobelOversubUM();
-		testSobelOversubMultiImgStd();
 		testSobelStreamUM(false);
 		testSobelStreamUM(true);
 		testSobelStreamStd();
+	    cudaDeviceReset();
 	}
-
+	testFluidSimStd();
+	testFluidSimUM();
+	testFluidSimUM(false);
 	Timer::getInstance().printResults();
 	cudaDeviceSynchronize();
     cudaProfilerStop();

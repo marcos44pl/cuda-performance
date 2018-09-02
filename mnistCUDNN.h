@@ -717,7 +717,8 @@ class network_t
                                             *dstData) );    
     }
 
-    void classify_example(value_type* imgData_h,
+    void classify_example(int iter,
+    					  value_type* imgData_h,
     					  const Layer_t<value_type>& conv1,
                           const Layer_t<value_type>& conv2,
                           const Layer_t<value_type>& ip1,
@@ -726,7 +727,7 @@ class network_t
         int n,c,h,w;
         value_type *srcData = NULL, *dstData = NULL;
         checkCudaErrors( cudaMalloc(&srcData, IMAGE_H*IMAGE_W*sizeof(value_type)) );
-        for(int i = 0; i < 1000; ++i)
+        for(int i = 0; i < iter; ++i)
         {
 			n = c = 1; h = IMAGE_H; w = IMAGE_W;
 			resize(IMAGE_H*IMAGE_W*sizeof(value_type),&srcData);

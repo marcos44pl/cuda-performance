@@ -15,7 +15,7 @@ class ImageManager;
 void testOversubStd(kernelPtr kernel_ptr);
 void testCudaMemGeneric(ImageManager&,std::string const&, createMemFunc,execKernel,copyMemAfterFunc,freeMem);
 void testOversubNaiveUM(kernelPtr kernel,bool withAdvise=true);
-void testOversubUMOpt(kernelPtr kernel);
+void testOversubUMOpt(kernelPtr kernel,bool withAdvise = true);
 void testOversubMultiImgStd(kernelPtr kernel);
 void testFluidSimUM(bool withAdvise = true);
 void testFluidSimStd();

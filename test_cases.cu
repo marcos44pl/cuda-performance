@@ -324,7 +324,7 @@ void testOversubNaiveUM(kernelPtr kernel,bool withAdvise /*=true*/)
 
 void testOversubMultiImgStd(kernelPtr kernel)
 {
-	const std::string name = "Oversubscription multi img std with overlapping";
+	const std::string name = "Oversubscription multi_img std with overlapping";
 	Timer::getInstance().start(name);
 
 	const ulong kb = 1024;
@@ -407,7 +407,7 @@ void testOversubMultiImgStd(kernelPtr kernel)
 	cudaCheckError();
 }
 
-void testOversubUMOpt(kernelPtr kernel)
+void testOversubUMOpt(kernelPtr kernel,bool advised)
 {
 	const ulong kb = 1024;
 	const ulong totalSize = kb * kb * kb * IMG_SIZE_GB;
@@ -416,8 +416,8 @@ void testOversubUMOpt(kernelPtr kernel)
 	uint height = IMG_H;
 	uint imgCount = totalSize / (width * height * channelNum * sizeof(uchar));
 	printf("ImgCount: %d\n",imgCount);
-	std::string name = "Oversubscription unified memory streams";
-	testStreamImgProcessingUm(kernel,name,imgCount,true);
+	std::string name = "Oversubscription multi_img UM streams ";
+	testStreamImgProcessingUm(kernel,name + std::to_string(advised),imgCount,advised);
 }
 
 void testFluidSimStd()
