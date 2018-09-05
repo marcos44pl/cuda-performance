@@ -3,7 +3,7 @@
 #include <chrono>
 #include <utility>
 #include <map>
-
+#include <vector>
 #define timeNow() std::chrono::high_resolution_clock::now()
 #define duration(a) std::chrono::duration_cast<std::chrono::milliseconds>(a).count()
 
@@ -14,12 +14,11 @@ typedef ResultMap::iterator ResultMapIt;
 
 struct ResultsData
 {
-    long      count;
-    long long resultsSum;
-    TimePoint startPoint;
+    std::vector<long> results;
+    TimePoint 		  startPoint;
 
     ResultsData() {}
-    ResultsData(long count, TimePoint startPoint) : count(count), startPoint(startPoint) { resultsSum = 0;  }
+    ResultsData(TimePoint startPoint) : startPoint(startPoint) {}
 };
 
 class Timer

@@ -19,37 +19,46 @@ std::map<std::string,execKernel> kernel_map =
 	};
 
 Fraction* execDevice(StartArgs args);
+void testFluidSimulations(std::vector<int> mods);
+void testImageProcessing();
+void testImageProcessingBasic(std::vector<int> size);
 
-StartArgs parsInputArguments(const int argc, char *argv[])
-{
-	StartArgs args;
-
-	//default simulation settings
-	args.NUM_OF_ITERATIONS = 10;
-	args.X_SIZE = 100;
-	args.Y_SIZE = 100;
-	args.Z_SIZE = 100;
-	args.type = deviceSimulationType::GLOBAL;
-	args.print = false;
-	return args;
-}
 
 int main(int argc, char *argv[])
 {
 	initCuda();
-	printf("Testing UM optimalizations\n");
-	std::vector<int> sizes = { 100, 200, 800, 1600, 3200 };
-	/*for(auto size : sizes)
-	{
-		testFl16FullyConnectedFwdCudaNN(size);
-		testFl16Cudnn(size);
-		testFl16PoolCudaNN(size);
-		testFl16ConvCudaNN(size);
-		cudaDeviceSynchronize();
-	}*/
+	std::vector<int> cnnIters = { 100, 200, 800, 1600, 3200 };
+	std::vector<int> imgSizes = { 30000 };
+	std::vector<int> copySimulCount = {1,2,5,10,20,100};
 
+	testCNNprecision(cnnIters);
+	testImageProcessingBasic(imgSizes);
+    testImageProcessing();
+	testFluidSimulations(copySimulCount);
+	Timer::getInstance().printResults();
+	cudaDeviceSynchronize();
+    cudaProfilerStop();
+    cudaDeviceReset();
+    printf("end\n");
+
+	return 0;
+}
+
+void testCNNprecision(std::vector<int> cnnIters)
+{
+	for(auto iter : cnnIters)
+	{
+		testFl16FullyConnectedFwdCudaNN(iter);
+		testFl16Cudnn(iter);
+		testFl16PoolCudaNN(iter);
+		testFl16ConvCudaNN(iter);
+		cudaDeviceSynchronize();
+	}
+}
+
+void testImageProcessingBasic(std::vector<int> sizes)
+{
 	ImageManager image;
-	sizes = { 500, 1000, 5000, 10000, 30000 };
 	for(auto size : sizes)
 	{
 		image.createEmpty(size,size);
@@ -78,8 +87,10 @@ int main(int argc, char *argv[])
 		}
 		image.clear();
 	}
-    cudaDeviceReset();
-	for(int i = 0; i < 3;++i)
+}
+void testImageProcessing()
+{
+	for(int i = 0; i < 10;++i)
 	{
 		testSobelOversubUMOpt(true);
 		testSobelOversubUMOpt(false);
@@ -91,14 +102,15 @@ int main(int argc, char *argv[])
 		testSobelStreamStd();
 	    cudaDeviceReset();
 	}
-	testFluidSimStd();
-	testFluidSimUM();
-	testFluidSimUM(false);
-	Timer::getInstance().printResults();
-	cudaDeviceSynchronize();
-    cudaProfilerStop();
-    cudaDeviceReset();
-    printf("end\n");
+}
 
-	return 0;
+void testFluidSimulations(std::vector<int> mods)
+{
+	for(int i = 0; i < 5;++i)
+		for(auto mod : mods)
+		{
+			testFluidSimStd(mod);
+			testFluidSimUM(mod);
+			testFluidSimUM(mod,false);
+		}
 }

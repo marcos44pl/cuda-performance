@@ -1,6 +1,8 @@
 #include "Timer.h"
 #include "Logger.h"
 #include <iostream>
+#include <numeric>
+#include <algorithm>
 
 Timer &Timer::getInstance()
 {
@@ -13,7 +15,7 @@ void Timer::start(std::string const& name)
     ResultMapIt it = resultMap.find(name);
 
     if (it == resultMap.end())
-        resultMap[name] = ResultsData(0, timeNow());
+        resultMap[name] = ResultsData(timeNow());
     else
     {
         resultMap[name].startPoint = timeNow();
@@ -27,8 +29,7 @@ long long Timer::stop(std::string const& name)
     if (it != resultMap.end())
     {
         dur = duration(timeNow() - resultMap[name].startPoint);
-        resultMap[name].resultsSum += dur;
-        resultMap[name].count++;
+        resultMap[name].results.push_back(dur);
     }
     return dur;
 }
@@ -43,11 +44,17 @@ void Timer::printResults()
 {
     for (ResultMapIt it = resultMap.begin(); it != resultMap.end(); ++it)
     {
-        long long avarage = it->second.resultsSum / it->second.count;
+    	auto const& res = it->second.results;
+        auto sum = std::accumulate(res.begin(),res.end(),0);
+        auto max = std::max_element(res.begin(),res.end());
+        auto min = std::min_element(res.begin(),res.end());
+        long long avarage = sum / res.size();
         std::cout << it->first.c_str() << ":\n" <<
             "    Avarage execution time: " << avarage << "ms\n" <<
-            "    Total execution time: " << it->second.resultsSum << "ms\n" <<
-            "    Executions count: " << it->second.count << "\n";
+            "    Min execution time: " << *min << "ms\n" <<
+            "    Max execution time: " << *max << "ms\n" <<
+            "    Total execution time: " << sum << "ms\n" <<
+            "    Executions count: " << res.size() << "\n";
     }
 }
 
@@ -56,11 +63,10 @@ void Timer::updateMap(std::string const name, long long value)
     ResultMapIt it = resultMap.find(name);
 
     if (it == resultMap.end())
-        resultMap[name] = ResultsData(1, timeNow());
+        resultMap[name] = ResultsData(timeNow());
     else
     {
-        resultMap[name].count++;
-        resultMap[name].resultsSum += value;
+        resultMap[name].results.push_back(value);
     }
 }
 
@@ -71,7 +77,8 @@ long long Timer::getAvgResult(std::string const& name)
            return 0;
     else
     {
-        long long avarage = it->second.resultsSum / it->second.count;
-        return avarage;
+    	auto const& res = it->second.results;
+        auto sum = std::accumulate(res.begin(),res.end(),0);
+        return sum / res.size();
     }
 }

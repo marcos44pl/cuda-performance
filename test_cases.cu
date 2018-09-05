@@ -420,9 +420,10 @@ void testOversubUMOpt(kernelPtr kernel,bool advised)
 	testStreamImgProcessingUm(kernel,name + std::to_string(advised),imgCount,advised);
 }
 
-void testFluidSimStd()
+void testFluidSimStd(int copyMod)
 {
-    Timer::getInstance().start("Fluid simulation std mem");
+	std::string name = std::string("Fluid simulation ") + std::to_string(copyMod) + std::string(" std mem");
+    Timer::getInstance().start(name);
     StartArgs args = parsInputArguments();
     Fraction* space = initSpace(args,false,false);
     FluidParams *d_params, params = initParams();
@@ -435,13 +436,14 @@ void testFluidSimStd()
 
     Fraction *d_space, *d_result;
     int totalSize = sizeof(Fraction)*args.SIZE(), i;
-    void *result = new Fraction[totalSize];
+    Fraction *result = new Fraction[totalSize];
 
     cudaMalloc((void **)&d_space, totalSize);
     cudaMalloc((void **)&d_result, totalSize);
     cudaCheckErrors("Mallocs");
     cudaMemcpy(d_space, space, totalSize, cudaMemcpyHostToDevice);
     cudaMemcpy(d_result, result, totalSize, cudaMemcpyHostToDevice);
+    copyMod = min(args.NUM_OF_ITERATIONS - 1,copyMod);
 
     cudaCheckErrors("Copy mem");
     printf("StdMem Simulation started\n");
@@ -452,27 +454,30 @@ void testFluidSimStd()
         swapPointers(d_space, d_result);
         cudaThreadSynchronize();
 
-    	if (i % 2 == 0)
-    		cudaMemcpy(space, d_space, totalSize, cudaMemcpyDeviceToHost);
-    	else
-    		cudaMemcpy(space, d_result, totalSize, cudaMemcpyDeviceToHost);
-
-    	testRead(space,totalSize);
+        if(i % copyMod == 0)
+        {
+			if (i % 2 == 0)
+				cudaMemcpy(result, d_space, totalSize, cudaMemcpyDeviceToHost);
+			else
+				cudaMemcpy(result, d_result, totalSize, cudaMemcpyDeviceToHost);
+	    	testRead(result,totalSize);
+        }
     }
-
-
-    Timer::getInstance().stop("Fluid simulation std mem");
+	cudaDeviceSynchronize();
+    Timer::getInstance().stop(name);
     printf("Simulation completed\n");
     free(space);
+    free(result);
     cudaFree(d_params);
     cudaFree(d_space);
     cudaFree(d_result);
     cudaCheckErrors("Free mem");
 }
 
-void testFluidSimUM(bool withAdvise)
+void testFluidSimUM(int copyMod, bool withAdvise)
 {
-    std::string name = withAdvise ? "Fluid simulation UM advised" : "Fluid simulation UM std";
+    std::string name = std::string("Fluid simulation ") + std::to_string(copyMod);
+    name = withAdvise ? name + std::string(" UM advised") : name + std::string(" UM Std");
     Timer::getInstance().start(name);
 
 	int device = -1;
@@ -499,6 +504,7 @@ void testFluidSimUM(bool withAdvise)
     {
     	printf("UM Simulation started\n");
     }
+    copyMod = min(args.NUM_OF_ITERATIONS - 1,copyMod);
     Fraction* space = initSpace(args,true,withAdvise,device);
     for (i = 0; i<args.NUM_OF_ITERATIONS; ++i)
     {
@@ -506,31 +512,37 @@ void testFluidSimUM(bool withAdvise)
         swapPointers(space, buffer);
         cudaThreadSynchronize();
 
-    	result = (i % 2 == 0) ? space : buffer;
-    	start = (i % 2 == 0)  ? buffer : space;
-
-        if(withAdvise)
+        if(i % copyMod == 0)
         {
-        	cudaMemPrefetchAsync(result,totalSize,cudaCpuDeviceId,NULL);
-        	cudaCheckError();
-        	cudaMemPrefetchAsync(start,totalSize,device,NULL);
-        	cudaCheckError();
-        }
+			result = (i % 2 == 0) ? space : buffer;
+			start = (i % 2 == 0)  ? buffer : space;
 
-    	testRead(result,totalSize);
+			if(withAdvise)
+			{
+				cudaMemPrefetchAsync(result,totalSize,cudaCpuDeviceId,NULL);
+				cudaCheckError();
+				cudaMemPrefetchAsync(start,totalSize,device,NULL);
+				cudaCheckError();
+			}
 
-        if(withAdvise)
-        {
-        	cudaMemPrefetchAsync(result,totalSize,device,NULL);
-        	cudaCheckError();
+			testRead(result,totalSize);
+
+			if(withAdvise && i < args.NUM_OF_ITERATIONS-1)
+			{
+				cudaMemPrefetchAsync(result,totalSize,device,NULL);
+				cudaCheckError();
+			}
         }
     }
-
+	cudaDeviceSynchronize();
     Timer::getInstance().stop(name);
     printf("Simulation completed\n");
 
     cudaFree(space);
+	cudaCheckError();
     cudaFree(buffer);
+	cudaCheckError();
     cudaFree(um_params);
+	cudaCheckError();
 }
 
